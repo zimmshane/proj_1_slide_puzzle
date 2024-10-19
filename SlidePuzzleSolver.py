@@ -42,6 +42,7 @@ class Puzzle:
     # return board after move right
     def getMoveRight(self) -> list:
         pass
+        pass
     
 
 class Search:
