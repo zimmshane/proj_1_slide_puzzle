@@ -3,21 +3,34 @@ import random
 class Puzzle:
     board = []
     moves = 0
-    size = set()
+    size = 0
     moveHistory = []
+    blankIndex = 0
     
     #Constructor
-    def __init__(self, board:list = None, rows:int = 3, cols:int = 3):
-        if board:
-            self.board = board
+    def __init__(self):
+        puzzleType = input("Type “1” to use a default puzzle, or “2” to enter your own puzzle.")
+    
+        if puzzleType == 2:
+            theInput = input("Enter your puzzle with spaces between the numbers: ")
+            theInput.split()
+            self.board = theInput
         else:
             self.board = self.getRandomBoard()
-            
-        self.size = (rows,cols)
+
+        self.size = 3
+        self.blankIndex = self.getBlankIndex()
     
+    def __getBlankIndex__(self):
+        return self.board.index("X")
+
     #Update main board with best move
     def makeMove(self,board):
-        pass
+        self.board = board
+        self.moveHistory.append(board)
+        self.moves += 1
+        if self.winCondition == self.board:
+            print("This is a win!")
         
     #Make a random board config    
     def getRandomBoard(self) -> list: 
@@ -29,20 +42,35 @@ class Puzzle:
     
     # return board after move up
     def getMoveUp(self) -> list:
-        pass
+        if self.blankIndex >= 0 and self.blankIndex <= self.size:
+            return None
+        tempBoard = self.board.copy()
+        tempBoard[self.blankIndex],tempBoard[self.blankIndex - self.size] = tempBoard[self.blankIndex - self.size],tempBoard[self.blankIndex]
+        return tempBoard
     
     # return board after move down
     def getMoveDown(self) -> list:
-        pass
+        if self.blankIndex >= (self.size **2) - self.size and self.blankIndex <= (self.size **2) -1:
+            return None
+        tempBoard = self.board.copy()
+        tempBoard[self.blankIndex],tempBoard[self.blankIndex + self.size] = tempBoard[self.blankIndex + self.size],tempBoard[self.blankIndex]
+        return tempBoard
     
     # return board after move left
     def getMoveLeft(self) -> list:
-        pass
+        if self.blankIndex % self.size == 0:
+            return None
+        tempBoard = self.board.copy()
+        tempBoard[self.blankIndex],tempBoard[self.blankIndex - 1] = tempBoard[self.blankIndex - 1],tempBoard[self.blankIndex]
+        return tempBoard
     
     # return board after move right
     def getMoveRight(self) -> list:
-        pass
-        pass
+        if self.blankIndex + 1 % self.size == 0:
+            return None
+        tempBoard = self.board.copy()
+        tempBoard[self.blankIndex],tempBoard[self.blankIndex + 1] = tempBoard[self.blankIndex + 1],tempBoard[self.blankIndex]
+        return tempBoard
     
 
 class Search:
@@ -56,7 +84,7 @@ class Search:
     def findNextMove(self):
         pass
     
-    def getManhattanCost(self):
+    def getManhattanCost(self, board):
         pass
     
     def getMisplaceCost(self):
@@ -71,12 +99,16 @@ class Printer:
         pass
     
     def printMenu(self):
-        pass
-    
+        print("Welcome to szimm011 & ladam020's 8 puzzle solver.")
+        
     def printSolution(self):
         pass   
 
 #Main
 if __name__ == '__main__':
-    pass
+    printer = Printer()
+    puzzle = Puzzle()
+    printer.printMenu
+
+
     
