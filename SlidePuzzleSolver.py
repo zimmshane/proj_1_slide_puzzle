@@ -7,25 +7,27 @@ class Puzzle:
     moves = 0
     size = 0
     moveHistory = []
-    winState = (1,2,3,4,5,6,7,8,0)
+    winState = [1,2,3,4,5,6,7,8,0]
     quickLookup = [] #qlookup[i] returns (r,c) of i on current sized board
     winFlag = False
 
     
     #Constructor
     def __init__(self):
-        puzzleType = input("Type “1” to use a default puzzle, or “2” to enter your own puzzle.")
+        self.size = 3
+        puzzleType = 1 #input("Type “1” to use a default puzzle, or “2” to enter your own puzzle.")
     
         if puzzleType == 2:
-            self.board = input("Enter your puzzle with spaces between the numbers: ").split
+            myboard = input("Enter your puzzle with spaces between the numbers: ").split
+            self.board = myboard
+           
         else:
             self.board = self.getRandomBoard()
             
-        self.size = 3 # size != 3 not yet fully supported
         
     def __generateQuickLookup__(self):
         r , c = 0 , 0
-        for i in range(self.size**2 - 1):
+        for i in range(self.size**2):
             self.quickLookup[i]=(r,c)
             if c == self.size - 1:
                 c = 0
@@ -39,16 +41,18 @@ class Puzzle:
         self.board = board
         self.moveHistory.append(board)
         self.moves += 1
+        print(self.board)
 
         
     #Make a random board config    
-    def getRandomBoard(self) -> set:
-        board = list(range(self.size**2 - 1))
+    def getRandomBoard(self) -> list:
+        print("Creating a random Board")
+        board = list(range(self.size**2))
         solvable = False
         while not solvable:
             random.shuffle(board)
             solvable=self.isSolvable(board)
-        return board
+        return board # board
         
         
     #check if a board config is solvable
@@ -94,7 +98,7 @@ class Puzzle:
     # return board after move rightdown_
     def getMoveRight(self) -> list:
         blankIndex = self.board.index(0)
-        if blankIndex + 1 % self.size == 0:
+        if (blankIndex + 1) % self.size == 0:
             return None
         right_shift_board = list(self.board)
         right_shift_board[blankIndex],right_shift_board[blankIndex + 1] = right_shift_board[blankIndex + 1],right_shift_board[blankIndex]
@@ -102,7 +106,7 @@ class Puzzle:
     
 
 class Search:
-    visited = {}
+    visited = set()
     queue = deque()
     hCache = {}  
     searchType = 0
@@ -111,11 +115,12 @@ class Search:
     
     def __init__(self, puzzle : Puzzle ,searchType = 0):
         self.puzzle = puzzle
-        self.searchtype = searchType
+        self.searchType = searchType
         
     
     #coordinate cost calc and return best move
     def findSolution(self) -> bool:
+        if puzzle.board == puzzle.winState: return True
         if self.searchType == 0:
             #Euclidian
             pass
@@ -128,7 +133,7 @@ class Search:
             while self.queue:
                 
                 puzzle.makeMove(self.queue.popleft())
-                self.visited[puzzle.board]=puzzle.moves
+
                 
                 if puzzle.board == puzzle.winState:
                     puzzle.winFlag = True
@@ -153,7 +158,8 @@ class Search:
         
         
     def __checkAndAdd__(self,peeker):
-        if peeker and peeker not in self.visited:
+        if peeker and (tuple(peeker) not in self.visited):
+            self.visited.add(tuple(peeker))
             self.queue.append(peeker.copy())
     
     def __getEuclidianCost__(self, board):
@@ -177,7 +183,7 @@ class Search:
     
     def __getMisplaceCost__(self, board):
         totalCost = 0
-        for i in range(puzzle.size**2 - 1):
+        for i in range(puzzle.size**2):
             if puzzle.board[i] != puzzle.winState[i]:
                 totalCost += 1
         return totalCost
@@ -201,10 +207,9 @@ class Printer:
 
 #Main
 if __name__ == '__main__':
-    printer = Printer()
     puzzle = Puzzle()
-    solver = Search(puzzle,0)
-    printer.printMenu
+    solver = Search(puzzle,2)
+    print(solver.findSolution())
 
 
     
