@@ -3,15 +3,48 @@ from collections import deque
 from math import sqrt
 import heapq
 
+class Node:
+    state = tuple()
+    move = 0
+    def __init__(self,board, move):
+        self.state = tuple(board)
+        self.move = move
+
+class Tree:
+    root = None
+    parentDict = {}
+    def __init__(self, initState):
+        self.root = Node(initState,0)
+        self.parentDict[0] = (None,self.root)
+        
+    def addNode(self,board, currentMove, parentMove):
+        newNode = Node(board,currentMove)
+        self.parentDict[currentMove] = (parentMove,newNode) 
+    
+    def findPath(self,winningMove):
+        move = winningMove
+        count = 1
+        print("Calculating an Optimal Solution Path from Search History...")
+        while self.parentDict[move][0]:
+            parentMove, node = self.parentDict[move]
+            print(f"Move: {count}")
+            Printer.printState(node.state)
+            move = parentMove
+            count += 1
+        #Loop misses root
+        print(f"Move: {count}")
+        Printer.printState(self.root.state)
+        
+           
+        
 class Puzzle:
     board = []
     moves = 0
     size = 0
-    moveHistory = []
+    moveTree = None
     winState = [1,2,3,4,5,6,7,8,0]
     quickLookup = [] #qlookup[i] returns (r,c) of i on current sized board
     winFlag = False
-
     
     #Constructor
     def __init__(self,puzzleType=3):
@@ -22,6 +55,7 @@ class Puzzle:
             self.board = [int(x) for x in myboard]
         else:
             self.board = self.getRandomBoard()
+        self.moveTree = Tree(self.board)
             
         
     def __generateQuickLookup__(self):
@@ -34,14 +68,16 @@ class Puzzle:
                 r += 1
             else:
                 c += 1
-
+                
     
     #Update main board with best move
-    def makeMove(self,board):
+    def makeMove(self,board,parentMove):
         self.board = board
-        self.moveHistory.append(board)
         self.moves += 1
-        print(self.board)
+        self.moveTree.addNode(board,puzzle.moves,parentMove)
+        #print(f"Move: {self.moves}")
+        #Printer.printState(self.board)
+        
 
         
     #Make a random board config    
@@ -103,7 +139,7 @@ class Puzzle:
         right_shift_board = list(self.board)
         right_shift_board[blankIndex],right_shift_board[blankIndex + 1] = right_shift_board[blankIndex + 1],right_shift_board[blankIndex]
         return right_shift_board
-    
+  
 
 class Search:
     visited = set()
@@ -124,12 +160,12 @@ class Search:
         if self.searchType == 0:
             #Euclidian
             visited = set()
-            moveHeap = []
-            heapq.heappush(moveHeap, (0, puzzle.board))
+            moveHeap = [] 
+            heapq.heappush(moveHeap, (0, puzzle.board, 0)) #( MOVE COST, BOARD, PARENT MOVE)
 
             while moveHeap:
-                _ , board = heapq.heappop(moveHeap)
-                puzzle.makeMove(board)
+                _  , board , parentMove = heapq.heappop(moveHeap)
+                puzzle.makeMove(board,parentMove)
 
                 if puzzle.board == puzzle.winState:
                     puzzle.winFlag = True
@@ -140,27 +176,69 @@ class Search:
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getEuclidianCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
 
                 #Find heuristic for move down
                 board = puzzle.getMoveDown()
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getEuclidianCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
 
                 #Find heuristic for move left
                 board = puzzle.getMoveLeft()
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getEuclidianCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
 
                 #Find heuristic for move right
                 board = puzzle.getMoveRight()
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getEuclidianCost__(board)
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
+
+        elif self.searchType == 1:
+            #Misplaced Tile
+            visited = set()
+            moveHeap = [] 
+            heapq.heappush(moveHeap, (0, puzzle.board, 0)) #( MOVE COST, BOARD, PARENT MOVE)
+
+            while moveHeap:
+                _  , board , parentMove = heapq.heappop(moveHeap)
+                puzzle.makeMove(board,parentMove)
+
+                if puzzle.board == puzzle.winState:
+                    puzzle.winFlag = True
+                    break
+
+                #Find heuristic for move up
+                board = puzzle.getMoveUp()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+
+                #Find heuristic for move down
+                board = puzzle.getMoveDown()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+
+                #Find heuristic for move left
+                board = puzzle.getMoveLeft()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+
+                #Find heuristic for move right
+                board = puzzle.getMoveRight()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
                     heapq.heappush(moveHeap, (cost, board))
 
         elif self.searchType == 1:
@@ -182,35 +260,35 @@ class Search:
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getMisplaceCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
 
                 #Find heuristic for move down
                 board = puzzle.getMoveDown()
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getMisplaceCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
 
                 #Find heuristic for move left
                 board = puzzle.getMoveLeft()
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getMisplaceCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves))
 
                 #Find heuristic for move right
                 board = puzzle.getMoveRight()
                 if board and tuple(board) not in visited:
                     visited.add(tuple(board))
                     cost = self.__getMisplaceCost__(board)
-                    heapq.heappush(moveHeap, (cost, board))
+                    heapq.heappush(moveHeap, (cost, board, puzzle.moves ))
             
         else:
             #Uniform Cost
-            self.queue.append(puzzle.board)
+            self.queue.append(puzzle.board,0)
             while self.queue:
-                
-                puzzle.makeMove(self.queue.popleft())
+                board, parentMove = self.queue.popleft()
+                puzzle.makeMove(board,parentMove)
 
                 
                 if puzzle.board == puzzle.winState:
@@ -230,17 +308,14 @@ class Search:
                 self.__checkAndAdd__(puzzle.getMoveRight())
                 
         return puzzle.winFlag
-                    
-                
-            
         
         
     def __checkAndAdd__(self,peeker):
         if peeker and (tuple(peeker) not in self.visited):
             self.visited.add(tuple(peeker))
-            self.queue.append(peeker.copy())
+            self.queue.append(peeker.copy(),puzzle.move)
     
-    def __getEuclidianCost__(self, board):
+    def __getEuclidianCost__(self, board) -> float:
         totalcost = 0
         for i in range(puzzle.size**2):
             if (puzzle.board[i],i) in self.hCache:
@@ -248,8 +323,7 @@ class Search:
                 continue
             
             #NOT IN CACHE
-            #get (x,y)
-            current_position = self.puzzle.quickLookup[i]
+            current_position = self.puzzle.quickLookup[i] #get (x,y)
             desired_position = self.puzzle.quickLookup[self.puzzle.winState.index(self.puzzle.board[i])]
             #calculate euclidian cost
             cost = sqrt((desired_position[0]-current_position[0])**2 + (desired_position[1] - current_position[1])**2)
@@ -259,7 +333,7 @@ class Search:
             
         return totalcost
     
-    def __getMisplaceCost__(self, board):
+    def __getMisplaceCost__(self, board) -> int:
         totalCost = 0
         for i in range(puzzle.size**2):
             if puzzle.board[i] != puzzle.winState[i]:
@@ -269,7 +343,7 @@ class Search:
     
 
 class Printer:
-    puzzle = None
+    puzzle = Puzzle
     welcome = "Welcome to szimm011 and ladam020 8 puzzle solver"
     config = """
 Type 1 to get a random board or 2 to configure your own!
@@ -281,15 +355,22 @@ Enter your choice of algorithm
 2) A* with the Euclidean distance heuristic.
 """
     
-    def __init__(self,puzzle):
+    def __init__(self , puzzle:Puzzle ):
         self.puzzle = puzzle
-        print(self.welcome)
-
-        
-    def printState(self,board):
-        #traverse list and print until you reach size and go to a new line
-        #two loops 1 prints new line and 2prints numbers
-        pass
+        p
+       
+    @staticmethod
+    def printState(board = puzzle.board):
+        counter=0
+        for i in range(puzzle.size):
+            for j in range(puzzle.size):
+                print(board[counter],end=" ")
+                counter += 1
+            print()
+        print()
+    
+    def printMenu(self):
+        print("Welcome to szimm011 & ladam020's 8 puzzle solver.")
         
     def printSolution(self):
         pass   
@@ -301,7 +382,9 @@ if __name__ == '__main__':
     puzzle = Puzzle(puzzleConfig)
     puzzleType = int(input(printer.menu1))
     solver = Search(puzzle, puzzleType)  
-    print(solver.findSolution())
-
+    printer = Printer(puzzle)
+    if solver.findSolution():
+        puzzle.moveTree.findPath(puzzle.moves)
+    
 
     
