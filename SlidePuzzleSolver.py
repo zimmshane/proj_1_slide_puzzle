@@ -14,14 +14,12 @@ class Puzzle:
 
     
     #Constructor
-    def __init__(self):
+    def __init__(self,puzzleType=3):
         self.size = 3
-        puzzleType = 1 #input("Type “1” to use a default puzzle, or “2” to enter your own puzzle.")
         self.__generateQuickLookup__()
         if puzzleType == 2:
-            myboard = input("Enter your puzzle with spaces between the numbers: ").split
-            self.board = myboard
-           
+            myboard = input("Enter your puzzle with spaces between the numbers: ").split()
+            self.board = [int(x) for x in myboard]
         else:
             self.board = self.getRandomBoard()
             
@@ -272,30 +270,37 @@ class Search:
 
 class Printer:
     puzzle = None
+    welcome = "Welcome to szimm011 and ladam020 8 puzzle solver"
+    config = """
+Type 1 to get a random board or 2 to configure your own!
+"""
+    menu1= """
+Enter your choice of algorithm 
+0) Uniform Cost Search 
+1) A* with the Misplaced Tile heuristic. 
+2) A* with the Euclidean distance heuristic.
+"""
     
     def __init__(self,puzzle):
         self.puzzle = puzzle
+        print(self.welcome)
+
         
-    def printState(self):
+    def printState(self,board):
+        #traverse list and print until you reach size and go to a new line
+        #two loops 1 prints new line and 2prints numbers
         pass
-    
-    def printMenu(self):
-        print("Welcome to szimm011 & ladam020's 8 puzzle solver.")
         
     def printSolution(self):
         pass   
 
 #Main
 if __name__ == '__main__':
-    puzzle = Puzzle()
-    puzzleType = int(input(
-"""
-Enter your choice of algorithm 
-0) Uniform Cost Search 
-1) A* with the Misplaced Tile heuristic. 
-2) A* with the Euclidean distance heuristic.
-"""))
-    solver = Search(puzzle, puzzleType)
+    printer = Printer(None)
+    puzzleConfig = int(input(printer.config))
+    puzzle = Puzzle(puzzleConfig)
+    puzzleType = int(input(printer.menu1))
+    solver = Search(puzzle, puzzleType)  
     print(solver.findSolution())
 
 
