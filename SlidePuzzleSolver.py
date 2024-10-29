@@ -167,7 +167,46 @@ class Search:
 
         elif self.searchType == 1:
             #Misplaced Tile
-            pass
+            visited = set()
+            moveHeap = []
+            heapq.heappush(moveHeap, (0, puzzle.board))
+
+            while moveHeap:
+                _ , board = heapq.heappop(moveHeap)
+                puzzle.makeMove(board)
+
+                if puzzle.board == puzzle.winState:
+                    puzzle.winFlag = True
+                    break
+
+                #Find heuristic for move up
+                board = puzzle.getMoveUp()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+
+                #Find heuristic for move down
+                board = puzzle.getMoveDown()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+
+                #Find heuristic for move left
+                board = puzzle.getMoveLeft()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+
+                #Find heuristic for move right
+                board = puzzle.getMoveRight()
+                if board and tuple(board) not in visited:
+                    visited.add(tuple(board))
+                    cost = self.__getMisplaceCost__(board)
+                    heapq.heappush(moveHeap, (cost, board))
+            
         else:
             #Uniform Cost
             self.queue.append(puzzle.board)
@@ -249,7 +288,14 @@ class Printer:
 #Main
 if __name__ == '__main__':
     puzzle = Puzzle()
-    solver = Search(puzzle,0)
+    puzzleType = int(input(
+"""
+Enter your choice of algorithm 
+0) Uniform Cost Search 
+1) A* with the Misplaced Tile heuristic. 
+2) A* with the Euclidean distance heuristic.
+"""))
+    solver = Search(puzzle, puzzleType)
     print(solver.findSolution())
 
 
