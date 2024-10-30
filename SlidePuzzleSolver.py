@@ -2,6 +2,7 @@ import random
 from collections import deque
 from math import sqrt
 import heapq
+import timeit
 
 class Node:
     state = tuple()
@@ -24,27 +25,26 @@ class Tree:
     def findPath(self,winningMove):
         move = winningMove
         count = 1
-        print("Calculating an Optimal Solution Path from Search History...")
+        print("Calculating an Optimal Path from Search Tree...")
         while self.parentDict[move][0]:
             parentMove, node = self.parentDict[move]
             print(f"Move: {count}")
             Printer.printState(node.state)
             move = parentMove
             count += 1
-        #Loop misses root
+        #Loop misses root so we add it to the end
         print(f"Move: {count}")
         Printer.printState(self.root.state)
         
-           
-        
 class Puzzle:
     board = []
-    moves = 0
+    moves = 1
     size = 0
     moveTree = None
     winState = [1,2,3,4,5,6,7,8,0]
     quickLookup = [] #qlookup[i] returns (r,c) of i on current sized board
     winFlag = False
+    errorFlag = False
     
     #Constructor
     def __init__(self,puzzleType=3):
@@ -54,10 +54,12 @@ class Puzzle:
             myboard = input("Enter your puzzle with spaces between the numbers: ").split()
             self.board = [int(x) for x in myboard]
         else:
+            print("Generating a Random Board...")
             self.board = self.getRandomBoard()
+            print("Random Board:")
+            Printer.printState(self.board)
         self.moveTree = Tree(self.board)
-            
-        
+              
     def __generateQuickLookup__(self):
         r , c = 0 , 0
         self.quickLookup=[0]*(self.size**2)
@@ -68,21 +70,15 @@ class Puzzle:
                 r += 1
             else:
                 c += 1
-                
-    
+        
     #Update main board with best move
     def makeMove(self,board,parentMove):
         self.board = board
         self.moves += 1
         self.moveTree.addNode(board,puzzle.moves,parentMove)
-        #print(f"Move: {self.moves}")
-        #Printer.printState(self.board)
-        
-
         
     #Make a random board config    
     def getRandomBoard(self) -> list:
-        print("Creating a random Board")
         board = list(range(self.size**2))
         solvable = False
         while not solvable:
@@ -140,69 +136,78 @@ class Puzzle:
         right_shift_board[blankIndex],right_shift_board[blankIndex + 1] = right_shift_board[blankIndex + 1],right_shift_board[blankIndex]
         return right_shift_board
   
-
 class Search:
     visited = set()
     moveHeap = []
     hCache = {}  
-    cacheMiss = 0
-    cacheHit = 0
+    cacheTracker = [0,0] #[CACHE HITS, CACHE MISS]
+    maxHeapSize = 1
     searchType = 0
+    showAllMoves = False
     puzzle = None
-
     
-    def __init__(self, puzzle : Puzzle ,searchType = 0):
+    def __init__(self, puzzle , showAllMoves= False, searchType = 0,):
         self.puzzle = puzzle
         self.searchType = searchType
+        self.showAllMoves = showAllMoves
         
-    
     #coordinate cost calc and return best move
     def findSolution(self) -> bool:
-        if puzzle.board == puzzle.winState: return True
+        print("Searching for a Solution... ",end="")
+        if puzzle.errorFlag: return False
         #Misplaced Tile
-        visited = set()
-        depth = 0
         heapq.heappush(self.moveHeap, (0, puzzle.board, 0)) #( MOVE COST, BOARD, PARENT MOVE)
 
-        while self.moveHeap:
-            _  , board , parentMove = heapq.heappop(self.moveHeap)
+        while self.moveHeap and not puzzle.winFlag:
+            tCost  , board , parentMove = heapq.heappop(self.moveHeap)
             puzzle.makeMove(board,parentMove)
 
+            if self.showAllMoves:
+                print(f"Move: {puzzle.moves} Cost: {tCost} Parent Move: {parentMove} Heuristic Value: {tCost-parentMove}")
+                Printer.printState(puzzle.board)
+                
             if puzzle.board == puzzle.winState:
                 puzzle.winFlag = True
                 break
             
-            self.__checkAndAdd__(puzzle.getMoveUp(),depth)
-            self.__checkAndAdd__(puzzle.getMoveDown(),depth)
-            self.__checkAndAdd__(puzzle.getMoveLeft(),depth)
-            self.__checkAndAdd__(puzzle.getMoveRight(),depth)
-            depth += 1
-                
+            self.__checkAndAdd__(puzzle.getMoveUp()) #Look Up
+            self.__checkAndAdd__(puzzle.getMoveDown()) #Look Down
+            self.__checkAndAdd__(puzzle.getMoveLeft()) #Look Left
+            self.__checkAndAdd__(puzzle.getMoveRight()) #Look Right
+            self.maxHeapSize = max(self.maxHeapSize,len(self.moveHeap))
+            
+        if puzzle.winFlag:
+            print("Solution Found!")
+        else:
+            print("No Solution!")       
         return puzzle.winFlag
-        
-        
-    def __checkAndAdd__(self,peeker, depth = 0):
-        if peeker and (tuple(peeker) not in self.visited):
-            self.visited.add(tuple(peeker))
+         
+    def __checkAndAdd__(self,peekAhead):
+        if peekAhead == puzzle.winState: #State is winner
+            puzzle.makeMove(peekAhead,puzzle.moves)
+            puzzle.winFlag = True
+            return
+        if peekAhead and (tuple(peekAhead) not in self.visited):
+            self.visited.add(tuple(peekAhead))
             if self.searchType == 0:
-                cost = depth
+                cost = puzzle.moves
             elif self.searchType == 1:
-                cost = self.__getMisplaceCost__(peeker) + depth
+                cost = self.__getMisplaceCost__(peekAhead) + puzzle.moves
             else:
-                cost = self.__getEuclidianCost__(peeker) + depth
-            heapq.heappush(self.moveHeap,(cost,peeker.copy(), puzzle.moves))
+                cost = self.__getEuclidianCost__(peekAhead) + puzzle.moves
+            heapq.heappush(self.moveHeap,(cost,peekAhead.copy(), puzzle.moves))
 
     
     def __getEuclidianCost__(self, board) -> float:
         totalcost = 0
         for i in range(puzzle.size**2):
             if (puzzle.board[i],i) in self.hCache:
-                self.cacheHit += 1
+                self.cacheTracker[0] += 1
                 totalcost += self.hCache[(puzzle.board[i],i)]
                 continue
             
             #NOT IN CACHE
-            self.cacheMiss += 1
+            self.cacheTracker[1] += 1
             current_position = self.puzzle.quickLookup[i] #get (x,y)
             desired_position = self.puzzle.quickLookup[self.puzzle.winState.index(self.puzzle.board[i])]
             #calculate euclidian cost
@@ -224,37 +229,61 @@ class Search:
 
 class Printer:
     welcome = "Welcome to szimm011 and ladam020 8 puzzle solver"
-    config = "Type 1 to get a random board or 2 to configure your own!"
-    menu1= """
-Enter your choice of algorithm 
+    config = "Type 1 to get a random board or 2 to configure your own: "
+    menu1= """Enter your choice of algorithm 
 0) Uniform Cost Search 
 1) A* with the Misplaced Tile heuristic. 
 2) A* with the Euclidean distance heuristic.
-"""
+Input: """
+    showMoves = "Show All States? (y/n): "
+    puzzle = None
     
-    def __init__(self):
-        print(self.welcome)
-       
     @staticmethod
-    def printState(board : list):
+    def printWelcome():
+        print(Printer.welcome)
+        
+    @staticmethod
+    def printState(board : list, size = 3):
         counter=0
-        for i in range(puzzle.size):
-            for j in range(puzzle.size):
+        for i in range(size):
+            for j in range(size):
                 print(board[counter],end=" ")
                 counter += 1
             print()
         print()
         
-    def printSolution(self):
-        pass   
+    @staticmethod
+    def printStats(puzzle,solver):
+        print(f"Cache HIT / MISS: {solver.cacheTracker}")
+        print(f"States Examined: {puzzle.moves}")
+        print(f"Max Heap Size: {solver.maxHeapSize}")
+        
+    @staticmethod
+    def printMenu():
+        return input(Printer.menu1)
+    
+    @staticmethod
+    def boardConfig() -> int:
+        return int(input(Printer.config))
+       
+    @staticmethod
+    def showAllMoves() -> bool:
+        showMoves = input(Printer.showMoves).lower()
+        if showMoves == "y":
+            return True
+        else:
+            return False
 
 #Main
 if __name__ == '__main__':
+    Printer.printWelcome()
+    puzzle = Puzzle(Printer.boardConfig())
     printer = Printer()
-    puzzle = Puzzle(int(input(printer.config)))
-    puzzleType = int(input(printer.menu1))
-    solver = Search(puzzle, puzzleType)  
+    if puzzle.errorFlag:
+        exit(-1)
+    #Show all puzzle
+    solver = Search(puzzle,Printer.showAllMoves(), int(Printer.printMenu()))  
     if solver.findSolution():
         puzzle.moveTree.findPath(puzzle.moves)
-    print(f"Cache Hits: {solver.cacheHit} Cache Misses: {solver.cacheMiss}")
+    Printer.printStats(puzzle,solver)
 
