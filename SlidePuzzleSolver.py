@@ -1,8 +1,6 @@
 import random
-from collections import deque
 from math import sqrt
 import heapq
-import timeit
 
 class Node:
     state = tuple()
@@ -155,7 +153,7 @@ class Search:
     def findSolution(self) -> bool:
         print("Searching for a Solution... ",end="")
         if puzzle.errorFlag: return False
-        #Misplaced Tile
+        
         heapq.heappush(self.moveHeap, (0, puzzle.board, 0)) #( MOVE COST, BOARD, PARENT MOVE)
 
         while self.moveHeap and not puzzle.winFlag:
@@ -183,11 +181,12 @@ class Search:
         return puzzle.winFlag
          
     def __checkAndAdd__(self,peekAhead):
-        if peekAhead == puzzle.winState: #State is winner
+        if peekAhead == puzzle.winState: #State is winner, immediatly make move
             puzzle.makeMove(peekAhead,puzzle.moves)
             puzzle.winFlag = True
             return
         if peekAhead and (tuple(peekAhead) not in self.visited):
+            cost = 0
             self.visited.add(tuple(peekAhead))
             if self.searchType == 0:
                 cost = puzzle.moves
@@ -195,25 +194,27 @@ class Search:
                 cost = self.__getMisplaceCost__(peekAhead) + puzzle.moves
             else:
                 cost = self.__getEuclidianCost__(peekAhead) + puzzle.moves
-            heapq.heappush(self.moveHeap,(cost,peekAhead.copy(), puzzle.moves))
+            heapq.heappush(self.moveHeap,(cost, peekAhead.copy(), puzzle.moves))
 
     
     def __getEuclidianCost__(self, board) -> float:
         totalcost = 0
-        for i in range(puzzle.size**2):
-            if (board[i],i) in self.hCache:
-                self.cacheTracker[0] += 1
-                totalcost += self.hCache[(board[i],i)]
+        for i, tile in enumerate(board):
+            if tile == 0:  # Skip the blank tile
                 continue
-            
+            if (tile, i) in self.hCache:
+                self.cacheTracker[0] += 1
+                totalcost += self.hCache[(tile, i)]
+                continue
+
             #NOT IN CACHE
             self.cacheTracker[1] += 1
-            current_position = self.puzzle.quickLookup[i] #get (x,y)
-            desired_position = self.puzzle.quickLookup[self.puzzle.winState.index(board[i])]
+            current_position = self.puzzle.quickLookup[i]  # get (x,y)
+            desired_position = self.puzzle.quickLookup[tile - 1]  # -1 because tiles are 1-indexed
             #calculate euclidian cost
             cost = sqrt((desired_position[0]-current_position[0])**2 + (desired_position[1] - current_position[1])**2)
             #add to cache
-            self.hCache[tuple((board[i],i))] = cost
+            self.hCache[(tile, i)] = cost
             totalcost += cost
             
         return totalcost
@@ -286,4 +287,3 @@ if __name__ == '__main__':
     if solver.findSolution():
         puzzle.moveTree.findPath(puzzle.moves)
     Printer.printStats(puzzle,solver)
-
