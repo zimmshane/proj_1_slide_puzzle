@@ -201,19 +201,19 @@ class Search:
     def __getEuclidianCost__(self, board) -> float:
         totalcost = 0
         for i in range(puzzle.size**2):
-            if (puzzle.board[i],i) in self.hCache:
+            if (board[i],i) in self.hCache:
                 self.cacheTracker[0] += 1
-                totalcost += self.hCache[(puzzle.board[i],i)]
+                totalcost += self.hCache[(board[i],i)]
                 continue
             
             #NOT IN CACHE
             self.cacheTracker[1] += 1
             current_position = self.puzzle.quickLookup[i] #get (x,y)
-            desired_position = self.puzzle.quickLookup[self.puzzle.winState.index(self.puzzle.board[i])]
+            desired_position = self.puzzle.quickLookup[self.puzzle.winState.index(board[i])]
             #calculate euclidian cost
             cost = sqrt((desired_position[0]-current_position[0])**2 + (desired_position[1] - current_position[1])**2)
             #add to cache
-            self.hCache[tuple((puzzle.board[i],i))] = cost
+            self.hCache[tuple((board[i],i))] = cost
             totalcost += cost
             
         return totalcost
@@ -221,7 +221,7 @@ class Search:
     def __getMisplaceCost__(self, board) -> int:
         totalCost = 0
         for i in range(puzzle.size**2):
-            if puzzle.board[i] != puzzle.winState[i]:
+            if board[i] != puzzle.winState[i]:
                 totalCost += 1
         return totalCost
     
