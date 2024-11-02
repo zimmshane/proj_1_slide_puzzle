@@ -36,7 +36,7 @@ class Tree:
         
 class Puzzle:
     board = []
-    moves = 1
+    moves = 0
     size = 0
     moveTree = None
     winState = [1,2,3,4,5,6,7,8,0]
@@ -161,7 +161,7 @@ class Search:
             puzzle.makeMove(board,parentMove)
 
             if self.showAllMoves:
-                print(f"Move: {puzzle.moves} Cost: {tCost} Parent Move: {parentMove} Heuristic Value: {tCost-parentMove}")
+                print(f"Move: {puzzle.moves} | Cost: {tCost} | g(n) = {parentMove} | h(n) = {tCost-parentMove}")
                 Printer.printState(puzzle.board)
                 
             if puzzle.board == puzzle.winState:
@@ -216,12 +216,14 @@ class Search:
             #add to cache
             self.hCache[(tile, i)] = cost
             totalcost += cost
+
             
         return totalcost
     
     def __getMisplaceCost__(self, board) -> int:
         totalCost = 0
         for i in range(puzzle.size**2):
+            if board[i] == 0: continue
             if board[i] != puzzle.winState[i]:
                 totalCost += 1
         return totalCost
